@@ -1,1 +1,1 @@
-# sidequests
+A collection of projects I have created for fun :)
