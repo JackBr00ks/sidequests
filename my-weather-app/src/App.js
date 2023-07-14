@@ -1,8 +1,9 @@
-import './App.css';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Dimmer, Loader } from 'semantic-ui-react';
 import Weather from './components/weather';
 import Forecast from './components/forecast';
+
+import './App.css';
 
 export default function App() {
   const [lat, setLat] = useState(null);
@@ -25,6 +26,24 @@ export default function App() {
     );
   }, []);
 
+  const getWeather = useCallback(async () => {
+    const res = await fetch(
+      `${API_URL}/weather/?lat=${lat}&lon=${long}&units=metric&APPID=${API_KEY}`
+    );
+    const weather = await handleResponse(res);
+    return mapDataToWeatherInterface(weather);
+  }, [lat, long, API_URL, API_KEY]);
+
+  const getForecast = useCallback(async () => {
+    const res = await fetch(
+      `${API_URL}/forecast/?lat=${lat}&lon=${long}&units=metric&APPID=${API_KEY}`
+    );
+    const forecastData = await handleResponse(res);
+    return forecastData.list
+      .filter((forecast) => forecast.dt_txt.includes('09:00:00'))
+      .map((data) => mapDataToWeatherInterface(data));
+  }, [lat, long, API_URL, API_KEY]);
+
   useEffect(() => {
     if (lat && long) {
       Promise.all([getWeather(), getForecast()])
@@ -37,7 +56,7 @@ export default function App() {
           setError(error.message);
         });
     }
-  }, [lat, long]);
+  }, [lat, long, getWeather, getForecast]);
 
   function handleResponse(response) {
     if (response.ok) {
@@ -45,26 +64,6 @@ export default function App() {
     } else {
       throw new Error('Unable to fetch data.');
     }
-  }
-
-  function getWeather() {
-    return fetch(
-      `${API_URL}/weather/?lat=${lat}&lon=${long}&units=metric&APPID=${API_KEY}`
-    )
-      .then((res) => handleResponse(res))
-      .then((weather) => mapDataToWeatherInterface(weather));
-  }
-
-  function getForecast() {
-    return fetch(
-      `${API_URL}/forecast/?lat=${lat}&lon=${long}&units=metric&APPID=${API_KEY}`
-    )
-      .then((res) => handleResponse(res))
-      .then((forecastData) =>
-        forecastData.list
-          .filter((forecast) => forecast.dt_txt.includes('09:00:00'))
-          .map((data) => mapDataToWeatherInterface(data))
-      );
   }
 
   function mapDataToWeatherInterface(data) {
