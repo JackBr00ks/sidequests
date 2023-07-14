@@ -1,100 +1,93 @@
 import './App.css';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import { Dimmer, Loader } from 'semantic-ui-react';
 import Weather from './components/weather';
 import Forecast from './components/forecast';
+
 export default function App() {
-  
-  const [lat, setLat] = useState([]);
-  const [long, setLong] = useState([]);
-  const [weatherData, setWeatherData] = useState([]);
-  const [forecast, setForecast] = useState([]);
+  const [lat, setLat] = useState(null);
+  const [long, setLong] = useState(null);
+  const [weatherData, setWeatherData] = useState(null);
+  const [forecast, setForecast] = useState(null);
   const [error, setError] = useState(null);
+  const API_URL = process.env.REACT_APP_API_URL;
+  const API_KEY = process.env.REACT_APP_API_KEY;
 
   useEffect(() => {
-      navigator.geolocation.getCurrentPosition(function(position) {
+    navigator.geolocation.getCurrentPosition(
+      function (position) {
         setLat(position.coords.latitude);
         setLong(position.coords.longitude);
-      });
-    
-      getWeather(lat, long)
-      .then(weather => {
-        setWeatherData(weather);
-        setError(null);
-      })
-      .catch(err => {
-        setError(err.message);
-      });
+      },
+      function (error) {
+        setError('Please enable location access in your browser.');
+      }
+    );
+  }, []);
 
-      getForecast(lat, long)
-        .then(data => {
-          setForecast(data);
+  useEffect(() => {
+    if (lat && long) {
+      Promise.all([getWeather(), getForecast()])
+        .then(([weather, forecast]) => {
+          setWeatherData(weather);
+          setForecast(forecast);
           setError(null);
         })
-        .catch(err => {
-          setError(err.message);
+        .catch((error) => {
+          setError(error.message);
         });
-
-  }, [lat,long,error])
+    }
+  }, [lat, long]);
 
   function handleResponse(response) {
     if (response.ok) {
       return response.json();
     } else {
-      throw new Error("Please Enable your Location in your browser!");
+      throw new Error('Unable to fetch data.');
     }
   }
 
-  function getWeather(lat, long) {
+  function getWeather() {
     return fetch(
-      `${process.env.REACT_APP_API_URL}/weather/?lat=${lat}&lon=${long}&units=metric&APPID=${process.env.REACT_APP_API_KEY}`
+      `${API_URL}/weather/?lat=${lat}&lon=${long}&units=metric&APPID=${API_KEY}`
     )
-      .then(res => handleResponse(res))
-      .then(weather => {
-        if (Object.entries(weather).length) {
-          const mappedData = mapDataToWeatherInterface(weather);
-          return mappedData;
-        }
-      });
+      .then((res) => handleResponse(res))
+      .then((weather) => mapDataToWeatherInterface(weather));
   }
-  
-  function getForecast(lat, long) {
+
+  function getForecast() {
     return fetch(
-      `${process.env.REACT_APP_API_URL}/forecast/?lat=${lat}&lon=${long}&units=metric&APPID=${process.env.REACT_APP_API_KEY}`
+      `${API_URL}/forecast/?lat=${lat}&lon=${long}&units=metric&APPID=${API_KEY}`
     )
-      .then(res => handleResponse(res))
-      .then(forecastData => {
-        if (Object.entries(forecastData).length) {
-          return forecastData.list
-            .filter(forecast => forecast.dt_txt.match(/09:00:00/))
-            .map(mapDataToWeatherInterface);
-        }
-      });
+      .then((res) => handleResponse(res))
+      .then((forecastData) =>
+        forecastData.list
+          .filter((forecast) => forecast.dt_txt.includes('09:00:00'))
+          .map((data) => mapDataToWeatherInterface(data))
+      );
   }
 
   function mapDataToWeatherInterface(data) {
-    const mapped = {
-      date: data.dt * 1000, // convert from seconds to milliseconds
+    return {
+      date: data.dt * 1000,
       description: data.weather[0].main,
       temperature: Math.round(data.main.temp),
+      dt_txt: data.dt_txt || null,
     };
-  
-    // Add extra properties for the five day forecast: dt_txt, icon, min, max
-    if (data.dt_txt) {
-      mapped.dt_txt = data.dt_txt;
-    }
-  
-    return mapped;
   }
-  
+
   return (
     <div className="App">
-      {(typeof weatherData.main != 'undefined') ? (
+      {error ? (
         <div>
-          <Weather weatherData={weatherData}/>
-          <Forecast forecast={forecast} weatherData={weatherData}/>
+          <p>{error}</p>
         </div>
-      ): (
+      ) : weatherData && forecast ? (
+        <div>
+          <Weather weatherData={weatherData} />
+          <Forecast forecast={forecast} weatherData={weatherData} />
+        </div>
+      ) : (
         <div>
           <Dimmer active>
             <Loader>Loading..</Loader>
