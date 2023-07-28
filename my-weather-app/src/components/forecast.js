@@ -1,7 +1,5 @@
-import React from "react";
-import {
-  List
-} from "@material-ui/core";
+import React from 'react';
+import { List } from "@material-ui/core";
 import moment from 'moment';
 import './styles.css';
 import {
@@ -15,23 +13,20 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-export default function Forecast(props, {weatherData}) {
 
-  const WeatherIcon = styled.div`
-  color: whitesmoke;
-`;
-
+export default function Forecast(props) {
   const { forecast } = props;
 
-  console.log("Forecast", forecast);
+  const WeatherIcon = styled.div`
+    color: whitesmoke;
+  `;
 
   const results = forecast.map((item, index) => {
-
     let weatherIcon = null;
 
     if (item.description === 'Thunderstorm') {
       weatherIcon = <FontAwesomeIcon icon={faBolt} />;
-    }else if (item.description === 'Drizzle') {
+    } else if (item.description === 'Drizzle') {
       weatherIcon = <FontAwesomeIcon icon={faCloudRain} />;
     } else if (item.description === 'Rain') {
       weatherIcon = <FontAwesomeIcon icon={faCloudShowersHeavy} />;
@@ -48,22 +43,17 @@ export default function Forecast(props, {weatherData}) {
     return (
       <div key={index} className="forecast">
         <div className="flex-forecast">
-        <p>{moment(item.dt_txt).format("dddd")}</p>
-      
-        <WeatherIcon style={{fontSize:25,marginTop:4}}>{weatherIcon}</WeatherIcon>
-
-        <p>
-          {item.temperature} &deg;C
-        </p>
+          <p>{moment(item.dt_txt).format("dddd")}</p>
+          <WeatherIcon style={{ fontSize: 25, marginTop: 4 }}>{weatherIcon}</WeatherIcon>
+          <p>{item.temperature} &deg;C</p>
         </div>
       </div>
     )
-  })
-  
-  return(
+  });
+
+  return (
     <div>
       <List aria-label="forecast data">{results}</List>
     </div>
   );
-  
 }
